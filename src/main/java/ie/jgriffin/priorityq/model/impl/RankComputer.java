@@ -1,14 +1,14 @@
 package ie.jgriffin.priorityq.model.impl;
 
 import ie.jgriffin.priorityq.model.WorkOrder;
-import ie.jgriffin.priorityq.model.WorkOrderComputer;
+
 import org.joda.time.DateTime;
 import org.joda.time.Seconds;
 
 /**
  * Created by jgriffin on 18/04/2017.
  */
-public class RankComputer implements WorkOrderComputer {
+public class RankComputer {
 
     /*
      * This reference DateTime is used to ensure that all time computations performed by this instance reference the
@@ -31,8 +31,7 @@ public class RankComputer implements WorkOrderComputer {
      * @param workOrder The WorkOrder to compute the ranking for.
      * @return a double representing the ranking for the WorkOrder.
      */
-    @Override
-    public double compute(WorkOrder workOrder) {
+    public Double compute(WorkOrder workOrder) {
         long workOrderId = workOrder.getId();
         long managementOverrideRemainder = workOrderId % RankConstants.MANAGEMENT_OVERRIDE;
 

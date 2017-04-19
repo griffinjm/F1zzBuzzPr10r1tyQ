@@ -1,13 +1,15 @@
 package ie.jgriffin.priorityq.rest;
 
+import ie.jgriffin.priorityq.model.WorkOrder;
 import ie.jgriffin.priorityq.model.impl.WorkOrderImpl;
+import ie.jgriffin.priorityq.persistence.WorkOrderQueue;
 import org.joda.time.DateTime;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -17,23 +19,27 @@ import java.util.List;
 @RequestMapping("/work-orders")
 public class WorkOrderRestController {
 
+    @Autowired
+    WorkOrderQueue workOrderQueue;
+
     /*
     1.
     Favouring PUT over POST here as we already know the resource id where we want to place the work order
      */
     @PutMapping("/{id}")
     public ResponseEntity<WorkOrderImpl> putWorkOrder(@PathVariable Long id, @RequestBody WorkOrderImpl workOrder) {
-        URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(id).toUri();
-        //if added
-        ResponseEntity<WorkOrderImpl> responseEntity = ResponseEntity.created(location).body(workOrder);
+        //ensure the workOrder id matches the path id variable
+        if (!id.equals(workOrder.getId())) {
+            return ResponseEntity.badRequest().build();
+        }
 
-        //if already exists
-        //ResponseEntity<WorkOrderImpl> responseEntity = ResponseEntity.ok(workOrder);
-
-        //if invalid request
-        //ResponseEntity<WorkOrderImpl> responseEntity = ResponseEntity.badRequest();
-
-        return responseEntity;
+        boolean success = workOrderQueue.add(workOrder);
+        if (success) {
+            URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(id).toUri();
+            return ResponseEntity.created(location).body(workOrder);
+        } else {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     /*
@@ -41,12 +47,14 @@ public class WorkOrderRestController {
     Using POST here as we are removing the object from the queue so the method is not idempotent as required by DELETE
      */
     @PostMapping("/head")
-    public ResponseEntity<WorkOrderImpl> dequeue() {
+    public ResponseEntity<WorkOrder> dequeue() {
         //if exists
-        ResponseEntity<WorkOrderImpl> responseEntity = ResponseEntity.ok(new WorkOrderImpl(0L, DateTime.now()));
-        //if queue empty
-        //ResponseEntity<WorkOrderImpl> responseEntity = ResponseEntity.noContent();
-        return responseEntity;
+        WorkOrder queueHead = workOrderQueue.getFirst();
+        if (queueHead == null) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.ok(queueHead);
+        }
     }
 
     /*
@@ -55,9 +63,7 @@ public class WorkOrderRestController {
      */
     @GetMapping("/ids")
     public ResponseEntity<List<Long>> ids() {
-        List<Long> idList = new ArrayList<>();
-        ResponseEntity<List<Long>> responseEntity = ResponseEntity.ok(idList);
-        return responseEntity;
+        return ResponseEntity.ok(workOrderQueue.getIds());
     }
 
     /*
@@ -65,24 +71,28 @@ public class WorkOrderRestController {
     Using DELETE for removal of object directly by id
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> remove(@PathVariable Long id){
-        ResponseEntity<?> responseEntity = ResponseEntity.noContent().build();
-        //if it doesn't exist or already deleted
-        //ResponseEntity<?> responseEntity = ResponseEntity.notFound().build();
-        return  responseEntity;
+    public ResponseEntity<?> remove(@PathVariable Long id) {
+        WorkOrder removedWorkOrder = workOrderQueue.remove(id);
+        if (removedWorkOrder == null) {
+            return ResponseEntity.notFound().build();
+        } else {
+            return ResponseEntity.noContent().build();
+        }
     }
 
     /*
     5.
     Using GET as the underlying resource will not be modified by the request
-    "position" is a virtual subresource on the WorkOrderImpl object
+    "position" is a virtual subresource on the WorkOrder object
      */
     @GetMapping("/{id}/position")
-    public ResponseEntity<Long> position(@PathVariable Long id){
-        ResponseEntity<Long> responseEntity = ResponseEntity.ok(0L);
-        //if it doesn't exist
-        //ResponseEntity<?> responseEntity = ResponseEntity.notFound().build();
-        return responseEntity;
+    public ResponseEntity<Integer> position(@PathVariable Long id) {
+        Integer position = workOrderQueue.getPosition(id);
+        if (position == null) {
+            return ResponseEntity.notFound().build();
+        } else {
+            return ResponseEntity.ok(position);
+        }
     }
 
     /*
@@ -90,7 +100,7 @@ public class WorkOrderRestController {
     Using GET as the underlying resource will not be modified by the request
      */
     @GetMapping("/average-wait")
-    public ResponseEntity<Long> averageWait(@RequestParam DateTime dateTime){
+    public ResponseEntity<Long> averageWait(@RequestParam DateTime dateTime) {
         ResponseEntity<Long> responseEntity = ResponseEntity.ok(0L);
         return responseEntity;
     }
