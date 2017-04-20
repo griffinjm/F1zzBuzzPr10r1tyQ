@@ -7,19 +7,21 @@ import org.joda.time.Seconds;
 
 /**
  * Created by jgriffin on 18/04/2017.
+ * <p>
+ * Computes the rank for any given WorkOrder object. Accepts a reference DateTime object in its constructor to ensure that all time computations performed by this instance reference the same instant in time.
  */
 public class RankComputer {
 
     /*
      * This reference DateTime is used to ensure that all time computations performed by this instance reference the
-     * same instance in time.
+     * same instant in time.
      */
     private final DateTime referenceDateTime;
 
     /**
      * Constructs a new instance of RankComputer.
      *
-     * @param referenceDateTime This reference DateTime is used to ensure that all time computations performed by this instance reference the same instance in time.
+     * @param referenceDateTime This reference DateTime is used to ensure that all time computations performed by this instance reference the same instant in time.
      */
     public RankComputer(DateTime referenceDateTime) {
         this.referenceDateTime = referenceDateTime;
@@ -48,11 +50,13 @@ public class RankComputer {
 
 
     /**
+     * Computes how many seconds have elapsed since the WorkOrder was placed in the queue.
+     *
      * @param workOrder The WorkOrder to compare to the reference DateTime to compute how many seconds have elapsed.
      * @return The number of seconds that have elapsed from the reference DateTime.
      */
     private double computeSecondsElapsed(WorkOrder workOrder) {
-        return Seconds.secondsBetween(referenceDateTime, workOrder.getDateTime()).getSeconds();
+        return Seconds.secondsBetween(workOrder.getDateTime(), referenceDateTime).getSeconds();
     }
 
     /**

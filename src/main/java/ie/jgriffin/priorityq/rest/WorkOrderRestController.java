@@ -3,8 +3,9 @@ package ie.jgriffin.priorityq.rest;
 import ie.jgriffin.priorityq.model.WorkOrder;
 import ie.jgriffin.priorityq.model.impl.WorkOrderImpl;
 import ie.jgriffin.priorityq.persistence.WorkOrderQueue;
+import ie.jgriffin.priorityq.validation.WorkOrderValidator;
 import org.joda.time.DateTime;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -19,19 +20,28 @@ import java.util.List;
 @RequestMapping("/work-orders")
 public class WorkOrderRestController {
 
-    @Autowired
-    WorkOrderQueue workOrderQueue;
+
+    private final WorkOrderQueue workOrderQueue;
+    private final WorkOrderValidator workOrderValidator;
+
+    public WorkOrderRestController(WorkOrderQueue workOrderQueue, WorkOrderValidator workOrderValidator) {
+        this.workOrderQueue = workOrderQueue;
+        this.workOrderValidator = workOrderValidator;
+    }
 
     /*
     1.
     Favouring PUT over POST here as we already know the resource id where we want to place the work order
      */
     @PutMapping("/{id}")
-    public ResponseEntity<WorkOrderImpl> putWorkOrder(@PathVariable Long id, @RequestBody WorkOrderImpl workOrder) {
+    public ResponseEntity<WorkOrder> putWorkOrder(@PathVariable Long id, @RequestBody WorkOrderImpl workOrder) {
         //ensure the workOrder id matches the path id variable
         if (!id.equals(workOrder.getId())) {
             return ResponseEntity.badRequest().build();
         }
+
+        workOrderValidator.idIsValid(id);
+        workOrderValidator.workOrderIsValid(workOrder);
 
         boolean success = workOrderQueue.add(workOrder);
         if (success) {
@@ -100,9 +110,8 @@ public class WorkOrderRestController {
     Using GET as the underlying resource will not be modified by the request
      */
     @GetMapping("/average-wait")
-    public ResponseEntity<Long> averageWait(@RequestParam DateTime dateTime) {
-        ResponseEntity<Long> responseEntity = ResponseEntity.ok(0L);
-        return responseEntity;
+    public ResponseEntity<Integer> averageWait(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) DateTime dateTime) {
+        return ResponseEntity.ok(workOrderQueue.getAverageWaitTime(dateTime));
     }
 
 }

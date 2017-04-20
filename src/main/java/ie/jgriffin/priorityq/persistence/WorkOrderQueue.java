@@ -4,6 +4,7 @@ import ie.jgriffin.priorityq.model.WorkOrder;
 import ie.jgriffin.priorityq.model.impl.RankComputer;
 import ie.jgriffin.priorityq.model.impl.WorkOrderRankComparator;
 import org.joda.time.DateTime;
+import org.joda.time.Seconds;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,31 +26,51 @@ public class WorkOrderQueue {
 
     public WorkOrder getFirst() {
         List<WorkOrder> workOrders = new LinkedList<>(workOrderMap.values());
-        Collections.sort(workOrders, new WorkOrderRankComparator(new RankComputer(DateTime.now())));
         if (!workOrders.isEmpty()) {
-            return workOrders.get(0);
+            Collections.sort(workOrders, new WorkOrderRankComparator(new RankComputer(DateTime.now())));
+            WorkOrder headOfQueue = workOrders.get(0);
+            workOrderMap.remove(headOfQueue.getId());
+            return headOfQueue;
         }
         return null;
     }
 
     public List<Long> getIds() {
         List<Long> idList = new LinkedList<>();
-        Collection<WorkOrder> workOrders = workOrderMap.values();
-        for (WorkOrder workOrder : workOrders) {
-            idList.add(workOrder.getId());
+        Collection<WorkOrder> workOrderCollection = workOrderMap.values();
+        if (!workOrderCollection.isEmpty()) {
+            List<WorkOrder> workOrderList = new LinkedList<>(workOrderCollection);
+            Collections.sort(workOrderList, new WorkOrderRankComparator(new RankComputer(DateTime.now())));
+            for (WorkOrder workOrder : workOrderList) {
+                idList.add(workOrder.getId());
+            }
         }
+
         return idList;
     }
 
-    public WorkOrder remove(Long id){
+    public WorkOrder remove(Long id) {
         return workOrderMap.remove(id);
     }
 
-    public Integer getPosition(Long id){
-        if (workOrderMap.containsKey(id)){
+    public Integer getPosition(Long id) {
+        if (workOrderMap.containsKey(id)) {
             List<Long> idList = getIds();
             return idList.indexOf(id);
         }
         return null;
+    }
+
+    public Integer getAverageWaitTime(DateTime referenceDateTime) {
+        Collection<WorkOrder> workOrderCollection = workOrderMap.values();
+        if (workOrderCollection.isEmpty()) {
+            return 0;
+        } else {
+            int secondsTotal = 0;
+            for (WorkOrder workOrder : workOrderCollection) {
+                secondsTotal += Seconds.secondsBetween(workOrder.getDateTime(), referenceDateTime).getSeconds();
+            }
+            return secondsTotal / workOrderCollection.size();
+        }
     }
 }

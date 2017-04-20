@@ -7,6 +7,7 @@ import org.joda.time.DateTime;
 
 /**
  * Created by jgriffin on 17/04/2017.
+ * This class models a WorkOrder placed in the queue. This class is immutable.
  */
 public class WorkOrderImpl implements WorkOrder {
 
@@ -19,11 +20,21 @@ public class WorkOrderImpl implements WorkOrder {
         this.dateTime = dateTime;
     }
 
+    /**
+     * The id of this WorkOrder. Represents the requestor's id.
+     *
+     * @return a Long representing the id of this WorkOrder.
+     */
     @Override
     public Long getId() {
         return id;
     }
 
+    /**
+     * The DateTime of this WorkOrder. Represents the moment the WorkOrder was placed.
+     *
+     * @return a DateTime representing the moment this WorkOrder was placed in the queue.
+     */
     @Override
     public DateTime getDateTime() {
         return dateTime;
