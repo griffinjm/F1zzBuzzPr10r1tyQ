@@ -4,6 +4,7 @@ import ie.jgriffin.priorityq.model.WorkOrder;
 import ie.jgriffin.priorityq.model.impl.WorkOrderImpl;
 import ie.jgriffin.priorityq.persistence.WorkOrderQueue;
 import ie.jgriffin.priorityq.validation.WorkOrderValidator;
+import io.swagger.annotations.*;
 import org.joda.time.DateTime;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +34,15 @@ public class WorkOrderRestController {
     Favouring PUT over POST here as we already know the resource id where we want to place the work order
      */
     @PutMapping("/{id}")
+    @ApiOperation(value = "Add a WorkOrder to the queue")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id", value = "the id of the WorkOrder to add, valid range: 1-9223372036854775807", required = true, dataType = "long", paramType = "path"),
+            @ApiImplicitParam(name = "workOrder", value = "the WorkOrder to add", required = true, dataType = "WorkOrder", paramType = "body")
+    })
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Success", response = WorkOrder.class),
+            @ApiResponse(code = 400, message = "BadRequest")
+    })
     public ResponseEntity<WorkOrder> putWorkOrder(@PathVariable Long id, @RequestBody WorkOrderImpl workOrder) {
         //ensure the workOrder id matches the path id variable
         if (!id.equals(workOrder.getId())) {
@@ -56,6 +66,11 @@ public class WorkOrderRestController {
     Using POST here as we are removing the object from the queue so the method is not idempotent as required by DELETE
      */
     @PostMapping("/head")
+    @ApiOperation(value = "Retrieve the WorkOrder at the head of the queue.")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Success", response = WorkOrder.class),
+            @ApiResponse(code = 204, message = "NoContent")
+    })
     public ResponseEntity<WorkOrder> dequeue() {
         //if exists
         WorkOrder queueHead = workOrderQueue.getFirst();
@@ -71,6 +86,8 @@ public class WorkOrderRestController {
     Using GET as the underlying resource will not be modified by the request
      */
     @GetMapping("/ids")
+    @ApiOperation(value = "Retrieve a list of the ids of the WorkOrders in the sorted queue.")
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "Success", response = WorkOrder.class)})
     public ResponseEntity<List<Long>> ids() {
         return ResponseEntity.ok(workOrderQueue.getSortedIds());
     }
@@ -80,6 +97,14 @@ public class WorkOrderRestController {
     Using DELETE for removal of object directly by id
      */
     @DeleteMapping("/{id}")
+    @ApiOperation(value = "Remove a WorkOrder from the queue")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id", value = "the id of the WorkOrder to remove, valid range: 1-9223372036854775807", required = true, dataType = "long", paramType = "path"),
+    })
+    @ApiResponses(value = {
+            @ApiResponse(code = 204, message = "NoContent"),
+            @ApiResponse(code = 400, message = "BadRequest")
+    })
     public ResponseEntity<?> remove(@PathVariable Long id) {
         WorkOrder removedWorkOrder = workOrderQueue.remove(id);
         if (removedWorkOrder == null) {
@@ -95,6 +120,14 @@ public class WorkOrderRestController {
     "position" is a virtual subresource on the WorkOrder object
      */
     @GetMapping("/{id}/position")
+    @ApiOperation(value = "Return the position of a WorkOrder in the queue, index is zero based.")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id", value = "the id of the WorkOrder to query, valid range: 1-9223372036854775807", required = true, dataType = "long", paramType = "path"),
+    })
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Success", response = Integer.class),
+            @ApiResponse(code = 204, message = "NoContent")
+    })
     public ResponseEntity<Integer> position(@PathVariable Long id) {
         Integer position = workOrderQueue.getPosition(id);
         if (position == null) {
@@ -109,6 +142,11 @@ public class WorkOrderRestController {
     Using GET as the underlying resource will not be modified by the request
      */
     @GetMapping("/average-wait")
+    @ApiOperation(value = "Return the average wait time for all WorkOrders in the queue, zero is returned if the queue is empty.")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "dateTime", value = "the current dateTime, used to determine elapsed time", required = true, dataType = "DateTime in ISO-8601 format", paramType = "query"),
+    })
+    @ApiResponses(value = {@ApiResponse(code = 200, message = "Success", response = Integer.class)})
     public ResponseEntity<Integer> averageWait(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) DateTime dateTime) {
         return ResponseEntity.ok(workOrderQueue.getAverageWaitTime(dateTime));
     }
