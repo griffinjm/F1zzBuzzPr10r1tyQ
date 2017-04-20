@@ -7,7 +7,7 @@ import org.joda.time.DateTime;
 
 /**
  * Created by jgriffin on 17/04/2017.
- * This class models a WorkOrder placed in the queue. This class is immutable.
+ * This class models a WorkOrder placed in the queue. This implementation is immutable.
  */
 public class WorkOrderImpl implements WorkOrder {
 

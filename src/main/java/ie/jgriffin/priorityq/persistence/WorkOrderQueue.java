@@ -1,76 +1,60 @@
 package ie.jgriffin.priorityq.persistence;
 
 import ie.jgriffin.priorityq.model.WorkOrder;
-import ie.jgriffin.priorityq.model.impl.RankComputer;
-import ie.jgriffin.priorityq.model.impl.WorkOrderRankComparator;
 import org.joda.time.DateTime;
-import org.joda.time.Seconds;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.List;
 
 /**
- * Created by jgriffin on 18/04/2017.
+ * Created by jgriffin on 20/04/2017.
+ * <p>
+ * Implementations should persist the submitted WorkOrders and encapsulates the operations required to store, remove, and determine WorkOrder data such as position and average wait times.
  */
-public class WorkOrderQueue {
+public interface WorkOrderQueue {
 
-    private final ConcurrentHashMap<Long, WorkOrder> workOrderMap = new ConcurrentHashMap<>();
+    /**
+     * Add the passed WorkOrder to the queue.
+     *
+     * @param workOrder The WorkOrder to persist.
+     * @return true if the workOrder has been added, or if the same workOrder was already added, false if an existing unequal workOrder exists for the same id.
+     */
+    boolean add(WorkOrder workOrder);
 
-    public boolean add(WorkOrder workOrder) {
-        WorkOrder preExistingWorkOrder = workOrderMap.putIfAbsent(workOrder.getId(), workOrder);
-        if (preExistingWorkOrder == null || preExistingWorkOrder.equals(workOrder)) {
-            return true;
-        }
-        return false;
-    }
+    /**
+     * Get the WorkOrder at the head of the queue.
+     *
+     * @return The WorkOrder at the head of the queue, null if the queue is empty.
+     */
+    WorkOrder getFirst();
 
-    public WorkOrder getFirst() {
-        List<WorkOrder> workOrders = new LinkedList<>(workOrderMap.values());
-        if (!workOrders.isEmpty()) {
-            Collections.sort(workOrders, new WorkOrderRankComparator(new RankComputer(DateTime.now())));
-            WorkOrder headOfQueue = workOrders.get(0);
-            workOrderMap.remove(headOfQueue.getId());
-            return headOfQueue;
-        }
-        return null;
-    }
+    /**
+     * Return the ids of WorkOrders in the queue, sorted according to requirements.
+     *
+     * @return A list of sorted ids, if the queue is empty an empty list will be returned.
+     */
+    List<Long> getSortedIds();
 
-    public List<Long> getIds() {
-        List<Long> idList = new LinkedList<>();
-        Collection<WorkOrder> workOrderCollection = workOrderMap.values();
-        if (!workOrderCollection.isEmpty()) {
-            List<WorkOrder> workOrderList = new LinkedList<>(workOrderCollection);
-            Collections.sort(workOrderList, new WorkOrderRankComparator(new RankComputer(DateTime.now())));
-            for (WorkOrder workOrder : workOrderList) {
-                idList.add(workOrder.getId());
-            }
-        }
+    /**
+     * Remove the WorkOrder mapped to the passed id.
+     *
+     * @param id The id to use to remove the WorkOrder.
+     * @return The removed WorkOrder, null if it was not in the queue.
+     */
+    WorkOrder remove(Long id);
 
-        return idList;
-    }
+    /**
+     * Get the position of the WorkOrder with with the passed id, sorted according to requirements, the index is 0 based.
+     *
+     * @param id The id to use to determine the WorkOrder's position.
+     * @return The position in the queue of the associated WorkOrder, the index is 0 based, returns null if the id is not present.
+     */
+    Integer getPosition(Long id);
 
-    public WorkOrder remove(Long id) {
-        return workOrderMap.remove(id);
-    }
-
-    public Integer getPosition(Long id) {
-        if (workOrderMap.containsKey(id)) {
-            List<Long> idList = getIds();
-            return idList.indexOf(id);
-        }
-        return null;
-    }
-
-    public Integer getAverageWaitTime(DateTime referenceDateTime) {
-        Collection<WorkOrder> workOrderCollection = workOrderMap.values();
-        if (workOrderCollection.isEmpty()) {
-            return 0;
-        } else {
-            int secondsTotal = 0;
-            for (WorkOrder workOrder : workOrderCollection) {
-                secondsTotal += Seconds.secondsBetween(workOrder.getDateTime(), referenceDateTime).getSeconds();
-            }
-            return secondsTotal / workOrderCollection.size();
-        }
-    }
+    /**
+     * Calculate the mean time in seconds that all currently queued WorkOrders have been in the queue.
+     *
+     * @param referenceDateTime The DateTime used to calculate the time offset.
+     * @return The mean time in seconds that all currently queued WorkOrders have been in the queue, 0 if the queue is empty.
+     */
+    Integer getAverageWaitTime(DateTime referenceDateTime);
 }

@@ -20,7 +20,6 @@ import java.util.List;
 @RequestMapping("/work-orders")
 public class WorkOrderRestController {
 
-
     private final WorkOrderQueue workOrderQueue;
     private final WorkOrderValidator workOrderValidator;
 
@@ -73,7 +72,7 @@ public class WorkOrderRestController {
      */
     @GetMapping("/ids")
     public ResponseEntity<List<Long>> ids() {
-        return ResponseEntity.ok(workOrderQueue.getIds());
+        return ResponseEntity.ok(workOrderQueue.getSortedIds());
     }
 
     /*

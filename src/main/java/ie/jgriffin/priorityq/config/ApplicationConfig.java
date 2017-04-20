@@ -1,6 +1,7 @@
 package ie.jgriffin.priorityq.config;
 
 import ie.jgriffin.priorityq.persistence.WorkOrderQueue;
+import ie.jgriffin.priorityq.persistence.impl.WorkOrderQueueImpl;
 import ie.jgriffin.priorityq.rest.WorkOrderRestController;
 import ie.jgriffin.priorityq.validation.WorkOrderValidator;
 import org.springframework.context.annotation.Bean;
@@ -21,7 +22,7 @@ public class ApplicationConfig {
 
     @Bean
     public WorkOrderQueue workOrderQueue() {
-        return new WorkOrderQueue();
+        return new WorkOrderQueueImpl();
     }
 
     @Bean
